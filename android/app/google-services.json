@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "428554498779",
+    "project_id": "gnhs-alumni",
+    "storage_bucket": "gnhs-alumni.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428554498779:android:72644349916b81112912fe",
+        "android_client_info": {
+          "package_name": "com.gnhs.alumni"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8X9EyM9yo5k4QcfLHH5n4fbXA-7PMX7A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
