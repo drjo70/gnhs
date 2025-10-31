@@ -52,11 +52,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         _alumniService.getGraduationYears(),
         _alumniService.getTotalAlumniCount(),
-        // updated_at 필드로 정렬 (최근 업데이트 순) - 10명으로 증가
+        // updated_at 필드로 정렬 (최근 업데이트 순) - 6명으로 변경
         FirebaseFirestore.instance
             .collection('alumni')
             .orderBy('updated_at', descending: true)
-            .limit(10)
+            .limit(6)
             .get(),
         _visitStatsService.getAllStats(),
       ]);
@@ -162,6 +162,41 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // 공지사항
+                    Card(
+                      color: Colors.blue[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.notifications_active, color: Colors.blue[700], size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '공지사항',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _buildNoticeItem('강릉고 동문 주소록 앱이 출시되었습니다!'),
+                            const SizedBox(height: 8),
+                            _buildNoticeItem('동문 정보 업데이트는 본인 확인 후 가능합니다.'),
+                            const SizedBox(height: 8),
+                            _buildNoticeItem('문의사항은 관리자에게 연락해주세요.'),
+                          ],
+                        ),
                       ),
                     ),
                     
@@ -513,6 +548,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildNoticeItem(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '•',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.blue[700],
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
