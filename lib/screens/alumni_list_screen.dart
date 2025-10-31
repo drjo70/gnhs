@@ -315,14 +315,19 @@ class _AlumniCard extends StatelessWidget {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Text(
-                  alumni.name.isNotEmpty ? alumni.name[0] : '?',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
+                backgroundImage: alumni.profilePhotoUrl.isNotEmpty
+                    ? NetworkImage(alumni.profilePhotoUrl)
+                    : null,
+                child: alumni.profilePhotoUrl.isEmpty
+                    ? Text(
+                        alumni.name.isNotEmpty ? alumni.name[0] : '?',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      )
+                    : null,
               ),
               
               const SizedBox(width: 16),

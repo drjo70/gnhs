@@ -292,13 +292,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                     CircleAvatar(
                                       backgroundColor: Theme.of(context).colorScheme.primary,
                                       radius: 16,
-                                      child: Text(
-                                        alumni.name.isNotEmpty ? alumni.name[0] : '?',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                        ),
-                                      ),
+                                      backgroundImage: alumni.profilePhotoUrl.isNotEmpty
+                                          ? NetworkImage(alumni.profilePhotoUrl)
+                                          : null,
+                                      child: alumni.profilePhotoUrl.isEmpty
+                                          ? Text(
+                                              alumni.name.isNotEmpty ? alumni.name[0] : '?',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                              ),
+                                            )
+                                          : null,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
