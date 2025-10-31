@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/alumni_service.dart';
+import 'notices_management_screen.dart';
 
 class AdminMenuScreen extends StatefulWidget {
   const AdminMenuScreen({super.key});
@@ -96,8 +97,11 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                         subtitle: '공지사항 작성, 수정 및 삭제',
                         color: Colors.orange,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('공지사항 기능 준비중입니다')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NoticesManagementScreen(),
+                            ),
                           );
                         },
                       ),
