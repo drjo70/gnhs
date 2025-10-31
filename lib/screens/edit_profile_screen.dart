@@ -196,8 +196,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       };
       
       // 업로드된 이미지 URL이 있으면 추가
-      if (_uploadedImageUrl != null) {
-        updateData['profile_photo_url'] = _uploadedImageUrl;
+      if (_uploadedImageUrl != null && _uploadedImageUrl!.isNotEmpty) {
+        updateData['profile_photo_url'] = _uploadedImageUrl as Object;
       }
       
       await docRef.update(updateData);

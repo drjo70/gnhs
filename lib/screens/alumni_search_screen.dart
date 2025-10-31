@@ -44,7 +44,8 @@ class _AlumniSearchScreenState extends State<AlumniSearchScreen> {
                 alumni.company.toLowerCase().contains(searchLower) ||
                 alumni.jobTitle.toLowerCase().contains(searchLower) ||
                 alumni.phone.contains(query) ||
-                alumni.address.toLowerCase().contains(searchLower);
+                alumni.address.toLowerCase().contains(searchLower) ||
+                alumni.notes.toLowerCase().contains(searchLower);
           })
           .toList();
 
@@ -53,6 +54,8 @@ class _AlumniSearchScreenState extends State<AlumniSearchScreen> {
       setState(() {
         _searchResults = results;
       });
+
+      // 검색 활동 기록 제거 (로그인 활동만 추적)
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +128,7 @@ class _AlumniSearchScreenState extends State<AlumniSearchScreen> {
                 autofocus: true,
                 style: const TextStyle(fontSize: 15),
                 decoration: InputDecoration(
-                  hintText: '이름, 회사, 직책, 지역, 연락처 등 검색...',
+                  hintText: '이름, 회사, 직책, 지역, 연락처, 메모 등 검색...',
                   hintStyle: TextStyle(
                     fontSize: 15,
                     color: Colors.grey.shade500,

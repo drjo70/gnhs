@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_manager.dart';
+import '../services/user_activity_service.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _smsCodeController = TextEditingController();
   final AuthManager _authManager = AuthManager();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final UserActivityService _activityService = UserActivityService();
   
   bool _isLoading = false;
   bool _codeSent = false;
@@ -267,6 +269,27 @@ class _LoginScreenState extends State<LoginScreen> {
         // AuthManager에 로그인 상태 저장
         await _authManager.login(normalizedPhone);
 
+        // 사용자 정보 가져오기
+        String userName = '알 수 없음';
+        try {
+          final alumniDoc = await FirebaseFirestore.instance
+              .collection('alumni')
+              .doc(normalizedPhone)
+              .get();
+          if (alumniDoc.exists) {
+            userName = alumniDoc.data()?['name'] ?? '알 수 없음';
+          }
+        } catch (e) {
+          print('사용자 이름 조회 실패: $e');
+        }
+
+        // 로그인 활동 기록
+        await _activityService.recordActivity(
+          userId: normalizedPhone,
+          userName: userName,
+          activityType: 'login',
+        );
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -322,6 +345,27 @@ class _LoginScreenState extends State<LoginScreen> {
       
       // AuthManager에 로그인 상태 저장
       await _authManager.login(normalizedPhone);
+
+      // 사용자 정보 가져오기
+      String userName = '알 수 없음';
+      try {
+        final alumniDoc = await FirebaseFirestore.instance
+            .collection('alumni')
+            .doc(normalizedPhone)
+            .get();
+        if (alumniDoc.exists) {
+          userName = alumniDoc.data()?['name'] ?? '알 수 없음';
+        }
+      } catch (e) {
+        print('사용자 이름 조회 실패: $e');
+      }
+
+      // 로그인 활동 기록
+      await _activityService.recordActivity(
+        userId: normalizedPhone,
+        userName: userName,
+        activityType: 'login',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

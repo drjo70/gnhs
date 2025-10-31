@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import '../services/auth_manager.dart';
+import '../services/user_activity_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,6 +14,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final UserActivityService _activityService = UserActivityService();
+  
   @override
   void initState() {
     super.initState();
@@ -31,6 +34,33 @@ class _SplashScreenState extends State<SplashScreen> {
       final currentPhone = AuthManager().currentUserPhone;
       print('🔍 [Splash] 로그인 상태: $isLoggedIn');
       print('🔍 [Splash] 저장된 전화번호: $currentPhone');
+      
+      // 자동 로그인인 경우 활동 기록
+      if (isLoggedIn && currentPhone != null && currentPhone.isNotEmpty) {
+        try {
+          // Firestore에서 사용자 이름 가져오기
+          final doc = await FirebaseFirestore.instance
+              .collection('alumni')
+              .doc(currentPhone)
+              .get();
+          
+          if (doc.exists) {
+            final userName = doc.data()?['name'] ?? '알 수 없음';
+            
+            // 자동 로그인 활동 기록
+            await _activityService.recordActivity(
+              userId: currentPhone,
+              userName: userName,
+              activityType: 'login',
+              details: '자동 로그인',
+            );
+            
+            print('✅ [자동로그인] 활동 기록 완료: $userName');
+          }
+        } catch (e) {
+          print('⚠️ [자동로그인] 활동 기록 실패: $e');
+        }
+      }
       
       // 스플래시 화면 최소 표시 시간 (1초로 단축)
       await Future.delayed(const Duration(seconds: 1));

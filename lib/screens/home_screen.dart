@@ -12,6 +12,7 @@ import 'add_alumni_screen.dart';
 import 'admin_menu_screen.dart';
 import 'alumni_detail_screen.dart';
 import 'notices_screen.dart';
+import 'splash_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,7 +45,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _recordVisit() async {
-    await _visitStatsService.recordVisit();
+    // 현재 로그인한 사용자 정보 가져오기
+    final currentPhone = _authManager.currentUserPhone;
+    
+    if (currentPhone != null) {
+      try {
+        // Firestore에서 사용자 이름 조회
+        final doc = await FirebaseFirestore.instance
+            .collection('alumni')
+            .doc(currentPhone)
+            .get();
+        
+        if (doc.exists) {
+          final userName = doc.data()?['name'] ?? '알 수 없음';
+          await _visitStatsService.recordVisit(
+            userId: currentPhone,
+            userName: userName,
+          );
+        } else {
+          await _visitStatsService.recordVisit();
+        }
+      } catch (e) {
+        await _visitStatsService.recordVisit();
+      }
+    } else {
+      await _visitStatsService.recordVisit();
+    }
   }
 
   Future<void> _loadData() async {
@@ -113,6 +139,43 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _handleLogout() async {
+    // 로그아웃 확인 다이얼로그
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              '로그아웃',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      // 로그아웃 처리
+      await _authManager.logout();
+      
+      if (mounted) {
+        // 로그인 화면으로 이동
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,6 +204,26 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               tooltip: '관리자 메뉴',
             ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 8),
+                    Text('로그아웃'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: _isLoading
@@ -153,33 +236,69 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 헤더
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Theme.of(context).colorScheme.primary,
-                            Theme.of(context).colorScheme.primaryContainer,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.people, color: Colors.white, size: 28),
-                          const SizedBox(width: 12),
-                          Text(
-                            '전체 $_totalCount명',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                    // 메뉴
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMenuCard(
+                            icon: Icons.search,
+                            title: '동문 검색',
+                            color: Colors.blue,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AlumniSearchScreen(),
+                                ),
+                              );
+                            },
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMenuCard(
+                            icon: Icons.groups,
+                            title: '회별 동문',
+                            color: Colors.green,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ClassListScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMenuCard(
+                            icon: Icons.language,
+                            title: '홈페이지',
+                            color: Colors.purple,
+                            onTap: _launchWebsite,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildMenuCard(
+                            icon: Icons.person_add,
+                            title: '동문추가',
+                            color: Colors.orange,
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AddAlumniScreen(),
+                                ),
+                              );
+                              if (result == true) {
+                                _loadData();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     
                     const SizedBox(height: 24),
@@ -247,78 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     
                     const SizedBox(height: 24),
                     
-                    // 메뉴
-                    const Text(
-                      '메뉴',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMenuCard(
-                            icon: Icons.search,
-                            title: '동문 검색',
-                            color: Colors.blue,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AlumniSearchScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildMenuCard(
-                            icon: Icons.groups,
-                            title: '회별 동문',
-                            color: Colors.green,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ClassListScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildMenuCard(
-                            icon: Icons.language,
-                            title: '홈페이지',
-                            color: Colors.purple,
-                            onTap: _launchWebsite,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildMenuCard(
-                            icon: Icons.person_add,
-                            title: '동문추가',
-                            color: Colors.orange,
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AddAlumniScreen(),
-                                ),
-                              );
-                              if (result == true) {
-                                _loadData();
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
                     // 최근 업데이트 동문
                     if (_recentAlumni.isNotEmpty) ...[
                       Row(
@@ -371,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     CircleAvatar(
                                       backgroundColor: Theme.of(context).colorScheme.primary,
-                                      radius: 16,
+                                      radius: 28,
                                       backgroundImage: alumni.profilePhotoUrl.isNotEmpty
                                           ? NetworkImage(alumni.profilePhotoUrl)
                                           : null,
@@ -380,7 +427,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                               alumni.name.isNotEmpty ? alumni.name[0] : '?',
                                               style: const TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 12,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             )
                                           : null,

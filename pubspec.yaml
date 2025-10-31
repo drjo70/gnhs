@@ -55,6 +55,9 @@ dependencies:
   
   # Local storage for login state
   shared_preferences: ^2.2.3
+  
+  # Charts for statistics
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:

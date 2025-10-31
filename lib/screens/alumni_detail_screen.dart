@@ -119,7 +119,7 @@ class _AlumniDetailScreenState extends State<AlumniDetailScreen> {
                 child: Column(
                   children: [
                     CircleAvatar(
-                      radius: 50,
+                      radius: 80,
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       backgroundImage: _alumni.profilePhotoUrl.isNotEmpty
                           ? NetworkImage(_alumni.profilePhotoUrl)
@@ -128,7 +128,7 @@ class _AlumniDetailScreenState extends State<AlumniDetailScreen> {
                           ? Text(
                               _alumni.name.isNotEmpty ? _alumni.name[0] : '?',
                               style: const TextStyle(
-                                fontSize: 40,
+                                fontSize: 64,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),

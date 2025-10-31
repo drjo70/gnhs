@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/alumni_service.dart';
 import 'notices_management_screen.dart';
+import 'visit_stats_screen.dart';
 
 class AdminMenuScreen extends StatefulWidget {
   const AdminMenuScreen({super.key});
@@ -101,6 +102,24 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const NoticesManagementScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // 접속통계
+                      _buildMenuCard(
+                        icon: Icons.analytics,
+                        title: '접속 통계',
+                        subtitle: '일별/주별/월별 접속 현황 분석',
+                        color: Colors.teal,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const VisitStatsScreen(),
                             ),
                           );
                         },
