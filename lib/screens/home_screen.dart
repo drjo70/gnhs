@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/alumni.dart';
+import '../models/notice.dart';
 import '../services/alumni_service.dart';
 import '../services/auth_manager.dart';
 import '../services/visit_stats_service.dart';
@@ -10,6 +11,7 @@ import 'alumni_search_screen.dart';
 import 'add_alumni_screen.dart';
 import 'admin_menu_screen.dart';
 import 'alumni_detail_screen.dart';
+import 'notices_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _totalYears = 0;
   bool _isLoading = true;
   List<Alumni> _recentAlumni = [];
+  List<Notice> _recentNotices = [];
   
   // 접속 통계
   int _todayVisits = 0;
@@ -59,21 +62,35 @@ class _HomeScreenState extends State<HomeScreen> {
             .limit(6)
             .get(),
         _visitStatsService.getAllStats(),
+        // 최근 공지사항 3개 가져오기 (활성화된 것만)
+        FirebaseFirestore.instance
+            .collection('notices')
+            .where('is_active', isEqualTo: true)
+            .get(),
       ]);
       
       final years = results[0] as List<int>;
       final totalCount = results[1] as int;
-      final snapshot = results[2] as QuerySnapshot;
+      final alumniSnapshot = results[2] as QuerySnapshot;
       final visitStats = results[3] as Map<String, int>;
+      final noticeSnapshot = results[4] as QuerySnapshot;
       
-      final recentAlumni = snapshot.docs
+      final recentAlumni = alumniSnapshot.docs
           .map((doc) => Alumni.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
+      
+      // 공지사항을 메모리에서 정렬하고 최근 3개만 선택
+      final allNotices = noticeSnapshot.docs
+          .map((doc) => Notice.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+      allNotices.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // 최신순
+      final recentNotices = allNotices.take(3).toList();
       
       setState(() {
         _totalYears = years.length;
         _totalCount = totalCount;
         _recentAlumni = recentAlumni;
+        _recentNotices = recentNotices;
         _todayVisits = visitStats['today'] ?? 0;
         _weekVisits = visitStats['week'] ?? 0;
         _monthVisits = visitStats['month'] ?? 0;
@@ -170,32 +187,60 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 공지사항
                     Card(
                       color: Colors.blue[50],
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.notifications_active, color: Colors.blue[700], size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '공지사항',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[700],
-                                  ),
-                                ),
-                              ],
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NoticesScreen(),
                             ),
-                            const SizedBox(height: 12),
-                            _buildNoticeItem('강릉고 동문 주소록 앱이 출시되었습니다!'),
-                            const SizedBox(height: 8),
-                            _buildNoticeItem('동문 정보 업데이트는 본인 확인 후 가능합니다.'),
-                            const SizedBox(height: 8),
-                            _buildNoticeItem('문의사항은 관리자에게 연락해주세요.'),
-                          ],
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.notifications_active, color: Colors.blue[700], size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '공지사항',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue[700],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Icon(Icons.chevron_right, color: Colors.blue[700], size: 20),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (_recentNotices.isEmpty)
+                                Text(
+                                  '등록된 공지사항이 없습니다',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                )
+                              else
+                                ..._recentNotices.asMap().entries.map((entry) {
+                                  return Column(
+                                    children: [
+                                      if (entry.key > 0) const SizedBox(height: 8),
+                                      _buildNoticeItem(entry.value.title),
+                                    ],
+                                  );
+                                }),
+                            ],
+                          ),
                         ),
                       ),
                     ),
