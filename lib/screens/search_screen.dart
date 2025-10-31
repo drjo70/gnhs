@@ -60,7 +60,6 @@ class _SearchScreenState extends State<SearchScreen> {
         final address = alumni.address.toLowerCase();
         final address2 = alumni.address2.toLowerCase();
         final email = alumni.email.toLowerCase();
-        final email2 = alumni.email2.toLowerCase();
         final phone = alumni.phone.toLowerCase();
         final phone2 = alumni.phone2.toLowerCase();
         final notes = alumni.notes.toLowerCase();
@@ -73,7 +72,6 @@ class _SearchScreenState extends State<SearchScreen> {
             address.contains(searchLower) ||
             address2.contains(searchLower) ||
             email.contains(searchLower) ||
-            email2.contains(searchLower) ||
             phone.contains(searchLower) ||
             phone2.contains(searchLower) ||
             notes.contains(searchLower) ||

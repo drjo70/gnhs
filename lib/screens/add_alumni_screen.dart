@@ -21,7 +21,6 @@ class _AddAlumniScreenState extends State<AddAlumniScreen> {
   
   // 선택 항목
   final _emailController = TextEditingController();
-  final _email2Controller = TextEditingController();
   final _companyController = TextEditingController();
   final _jobTitleController = TextEditingController();
   final _departmentController = TextEditingController();
@@ -37,7 +36,6 @@ class _AddAlumniScreenState extends State<AddAlumniScreen> {
     _phoneController.dispose();
     _graduationYearController.dispose();
     _emailController.dispose();
-    _email2Controller.dispose();
     _companyController.dispose();
     _jobTitleController.dispose();
     _departmentController.dispose();
@@ -101,7 +99,6 @@ class _AddAlumniScreenState extends State<AddAlumniScreen> {
         'phone': _formatPhoneNumber(_phoneController.text.trim()),
         'graduation_year': graduationYear,
         'email': _emailController.text.trim(),
-        'email2': _email2Controller.text.trim(),
         'company': _companyController.text.trim().isEmpty 
             ? '미등록' 
             : _companyController.text.trim(),
@@ -281,19 +278,6 @@ class _AddAlumniScreenState extends State<AddAlumniScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 이메일 2
-              TextFormField(
-                controller: _email2Controller,
-                decoration: const InputDecoration(
-                  labelText: '이메일 2',
-                  hintText: 'example2@email.com',
-                  prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-
               // 회사
               TextFormField(
                 controller: _companyController,
@@ -330,39 +314,39 @@ class _AddAlumniScreenState extends State<AddAlumniScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 주소
+              // 집주소
               TextFormField(
                 controller: _addressController,
                 decoration: const InputDecoration(
-                  labelText: '주소',
+                  labelText: '집주소',
                   hintText: '서울시 강남구 테헤란로 123',
-                  prefixIcon: Icon(Icons.location_on),
+                  prefixIcon: Icon(Icons.home),
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
 
-              // 주소 2
+              // 회사주소
               TextFormField(
                 controller: _address2Controller,
                 decoration: const InputDecoration(
-                  labelText: '주소 2',
-                  hintText: '상세주소',
-                  prefixIcon: Icon(Icons.location_on_outlined),
+                  labelText: '회사주소',
+                  hintText: '회사 위치',
+                  prefixIcon: Icon(Icons.location_city),
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
 
-              // 전화번호 2
+              // 회사전화
               TextFormField(
                 controller: _phone2Controller,
                 decoration: const InputDecoration(
-                  labelText: '전화번호 2',
+                  labelText: '회사전화',
                   hintText: '02-1234-5678',
-                  prefixIcon: Icon(Icons.phone_outlined),
+                  prefixIcon: Icon(Icons.phone_android),
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,

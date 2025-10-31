@@ -78,7 +78,6 @@ class _AlumniListScreenState extends State<AlumniListScreen> {
               alumni.address.toLowerCase().contains(query.toLowerCase()) ||
               alumni.address2.toLowerCase().contains(query.toLowerCase()) ||
               alumni.email.toLowerCase().contains(query.toLowerCase()) ||
-              alumni.email2.toLowerCase().contains(query.toLowerCase()) ||
               alumni.notes.toLowerCase().contains(query.toLowerCase()) ||
               alumni.phone.contains(query) ||
               alumni.phone2.contains(query);

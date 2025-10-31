@@ -74,9 +74,15 @@ class _AlumniSearchScreenState extends State<AlumniSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '동문 검색',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: InkWell(
+          onTap: () {
+            // 홈으로 돌아가기
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          child: const Text(
+            '강릉고 동문 주소록',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         centerTitle: true,
         actions: [

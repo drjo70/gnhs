@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _codeSent = false;
   String? _verificationId;
   ConfirmationResult? _webConfirmationResult; // 웹 환경용
+  int _totalAlumniCount = 0; // 총 동문 수
 
   @override
   void initState() {
@@ -29,6 +30,25 @@ class _LoginScreenState extends State<LoginScreen> {
     // 웹 환경에서 reCAPTCHA 설정
     if (kIsWeb) {
       _setupRecaptcha();
+    }
+    // 총 동문 수 불러오기
+    _loadTotalAlumniCount();
+  }
+
+  // 총 동문 수 가져오기
+  Future<void> _loadTotalAlumniCount() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('alumni')
+          .get();
+      
+      if (mounted) {
+        setState(() {
+          _totalAlumniCount = snapshot.docs.length;
+        });
+      }
+    } catch (e) {
+      print('❌ 동문 수 로드 실패: $e');
     }
   }
 
@@ -62,12 +82,42 @@ class _LoginScreenState extends State<LoginScreen> {
       // Firestore에서 해당 전화번호가 등록되어 있는지 먼저 확인
       final normalizedPhone = phone.replaceAll('-', '').replaceAll(' ', '');
       
-      final doc = await FirebaseFirestore.instance
+      // 하이픈 포함 형태로 변환 (010-1234-5678 형식)
+      String phoneWithDash = normalizedPhone;
+      if (normalizedPhone.length == 11 && normalizedPhone.startsWith('010')) {
+        phoneWithDash = '${normalizedPhone.substring(0, 3)}-${normalizedPhone.substring(3, 7)}-${normalizedPhone.substring(7)}';
+      }
+      
+      // phone 필드로 검색 - 하이픈 없는 형태
+      final querySnapshot1 = await FirebaseFirestore.instance
           .collection('alumni')
-          .doc(normalizedPhone)
+          .where('phone', isEqualTo: normalizedPhone)
+          .limit(1)
           .get();
+      
+      // phone 필드로 검색 - 하이픈 있는 형태
+      QuerySnapshot? querySnapshot2;
+      if (querySnapshot1.docs.isEmpty && phoneWithDash != normalizedPhone) {
+        querySnapshot2 = await FirebaseFirestore.instance
+            .collection('alumni')
+            .where('phone', isEqualTo: phoneWithDash)
+            .limit(1)
+            .get();
+      }
+      
+      // phone 필드로 검색 - 원본 형태 (사용자가 입력한 그대로)
+      QuerySnapshot? querySnapshot3;
+      if (querySnapshot1.docs.isEmpty && querySnapshot2?.docs.isEmpty != false && phone != normalizedPhone && phone != phoneWithDash) {
+        querySnapshot3 = await FirebaseFirestore.instance
+            .collection('alumni')
+            .where('phone', isEqualTo: phone)
+            .limit(1)
+            .get();
+      }
 
-      if (!doc.exists) {
+      if (querySnapshot1.docs.isEmpty && 
+          (querySnapshot2 == null || querySnapshot2.docs.isEmpty) && 
+          (querySnapshot3 == null || querySnapshot3.docs.isEmpty)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -80,6 +130,8 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
         return;
       }
+      
+      print('✅ 전화번호 확인 완료: $normalizedPhone');
 
       // 한국 전화번호 형식으로 변환 (+82)
       String formattedPhone = normalizedPhone;
@@ -331,7 +383,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 타이틀
                 const Text(
-                  '강릉고 총동문회',
+                  '강릉고 동문 주소록',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -348,7 +400,62 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 16),
+
+                // 총 동문 수 표시
+                if (_totalAlumniCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primaryContainer,
+                          Theme.of(context).colorScheme.secondaryContainer,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.people,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '등록 동문',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$_totalAlumniCount명',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 32),
 
                 // 전화번호 입력
                 TextField(
@@ -497,20 +604,48 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 24),
 
-                // 회원가입 안내
-                Text(
-                  '등록되지 않은 동문이신가요?',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+                // 등록 안내
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.amber[200]!,
+                      width: 1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '동문회에 문의하여 등록 후 이용해주세요.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[500],
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.amber[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '등록되지 않은 동문이신가요?',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber[900],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '등록된 친구에게 등록을 부탁하세요',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.amber[800],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

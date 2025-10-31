@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../models/alumni.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -16,12 +20,16 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _picker = ImagePicker();
+  
   bool _isSaving = false;
+  bool _isUploadingImage = false;
+  XFile? _selectedImage;
+  String? _uploadedImageUrl;
   
   // 텍스트 컨트롤러들
   late TextEditingController _nameController;
   late TextEditingController _emailController;
-  late TextEditingController _email2Controller;
   late TextEditingController _companyController;
   late TextEditingController _jobTitleController;
   late TextEditingController _departmentController;
@@ -39,7 +47,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // 기존 데이터로 초기화
     _nameController = TextEditingController(text: widget.alumni.name);
     _emailController = TextEditingController(text: widget.alumni.email);
-    _email2Controller = TextEditingController(text: widget.alumni.email2);
     _companyController = TextEditingController(text: widget.alumni.company);
     _jobTitleController = TextEditingController(text: widget.alumni.jobTitle);
     _departmentController = TextEditingController(text: widget.alumni.department);
@@ -55,7 +62,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _email2Controller.dispose();
     _companyController.dispose();
     _jobTitleController.dispose();
     _departmentController.dispose();
@@ -68,6 +74,97 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  // 이미지 선택
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _selectedImage = image;
+        });
+        
+        // 즉시 업로드
+        await _uploadImage();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('이미지 선택 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Firebase Storage에 이미지 업로드
+  Future<void> _uploadImage() async {
+    if (_selectedImage == null) return;
+    
+    setState(() => _isUploadingImage = true);
+    
+    try {
+      final normalizedPhone = widget.alumni.phone.replaceAll('-', '').replaceAll(' ', '');
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos')
+          .child('$normalizedPhone.jpg');
+      
+      // 웹과 모바일 플랫폼 처리
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        // 웹: bytes 사용
+        final bytes = await _selectedImage!.readAsBytes();
+        uploadTask = storageRef.putData(
+          bytes,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      } else {
+        // 모바일: File 사용
+        final file = File(_selectedImage!.path);
+        uploadTask = storageRef.putFile(file);
+      }
+      
+      // 업로드 완료 대기
+      final snapshot = await uploadTask;
+      
+      // 다운로드 URL 가져오기
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      setState(() {
+        _uploadedImageUrl = downloadUrl;
+        _isUploadingImage = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ 사진이 업로드되었습니다!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isUploadingImage = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('사진 업로드 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -77,14 +174,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       // Firestore 업데이트
-      // widget.alumni.phone은 이제 문서 ID 그 자체 (하이픈 없음)
-      await FirebaseFirestore.instance
+      // 전화번호를 정규화하여 Document ID로 사용 (하이픈 제거)
+      final normalizedPhone = widget.alumni.phone.replaceAll('-', '').replaceAll(' ', '');
+      
+      final docRef = FirebaseFirestore.instance
           .collection('alumni')
-          .doc(widget.alumni.phone)
-          .update({
+          .doc(normalizedPhone);
+      
+      final updateData = {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'email2': _email2Controller.text.trim(),
         'company': _companyController.text.trim(),
         'job_title': _jobTitleController.text.trim(),
         'department': _departmentController.text.trim(),
@@ -94,7 +193,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'birth_date': _birthDateController.text.trim(),
         'notes': _notesController.text.trim(),
         'updated_at': FieldValue.serverTimestamp(),
-      });
+      };
+      
+      // 업로드된 이미지 URL이 있으면 추가
+      if (_uploadedImageUrl != null) {
+        updateData['profile_photo_url'] = _uploadedImageUrl;
+      }
+      
+      await docRef.update(updateData);
+      
+      // 업데이트된 문서에서 최신 데이터 가져오기
+      final updatedDoc = await docRef.get();
+      final updatedAlumni = Alumni.fromFirestore(updatedDoc.data()!, updatedDoc.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -103,7 +213,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // true를 반환하여 새로고침 필요 표시
+        // 수정된 Alumni 객체 반환
+        Navigator.pop(context, updatedAlumni);
       }
     } catch (e) {
       if (mounted) {
@@ -154,6 +265,123 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 프로필 사진 섹션
+                Center(
+                  child: Column(
+                    children: [
+                      // 프로필 사진
+                      GestureDetector(
+                        onTap: _isUploadingImage ? null : _pickImage,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.blue,
+                              width: 3,
+                            ),
+                          ),
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: CircleAvatar(
+                                  radius: 65,
+                                  backgroundColor: Colors.grey[300],
+                                  backgroundImage: _selectedImage != null
+                                      ? (kIsWeb
+                                          ? NetworkImage(_selectedImage!.path) as ImageProvider
+                                          : FileImage(File(_selectedImage!.path)))
+                                      : (_uploadedImageUrl ?? widget.alumni.profilePhotoUrl).isNotEmpty
+                                          ? NetworkImage(_uploadedImageUrl ?? widget.alumni.profilePhotoUrl)
+                                          : null,
+                                  child: (_selectedImage == null &&
+                                          (_uploadedImageUrl ?? widget.alumni.profilePhotoUrl).isEmpty)
+                                      ? Text(
+                                          widget.alumni.name.isNotEmpty
+                                              ? widget.alumni.name[0]
+                                              : '?',
+                                          style: const TextStyle(
+                                            fontSize: 40,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              if (_isUploadingImage)
+                                Center(
+                                  child: Container(
+                                    width: 130,
+                                    height: 130,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              // 카메라 아이콘 배지
+                              Positioned(
+                                bottom: 5,
+                                right: 5,
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _isUploadingImage ? null : _pickImage,
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('사진 선택'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '프로필 사진을 클릭하거나 버튼을 눌러 변경',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
                 // 안내 메시지
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -197,7 +425,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 _buildTextField(
                   controller: _phone2Controller,
-                  label: '보조 전화번호',
+                  label: '회사전화',
                   icon: Icons.phone_android,
                   keyboardType: TextInputType.phone,
                 ),
@@ -214,14 +442,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _SectionHeader(title: '이메일'),
                 _buildTextField(
                   controller: _emailController,
-                  label: '이메일 1',
+                  label: '이메일',
                   icon: Icons.email,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                _buildTextField(
-                  controller: _email2Controller,
-                  label: '이메일 2',
-                  icon: Icons.alternate_email,
                   keyboardType: TextInputType.emailAddress,
                 ),
 
@@ -251,14 +473,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _SectionHeader(title: '주소'),
                 _buildTextField(
                   controller: _addressController,
-                  label: '주소 1',
+                  label: '집주소',
                   icon: Icons.home,
                   maxLines: 2,
                 ),
                 _buildTextField(
                   controller: _address2Controller,
-                  label: '주소 2',
-                  icon: Icons.location_on,
+                  label: '회사주소',
+                  icon: Icons.location_city,
                   maxLines: 2,
                 ),
 

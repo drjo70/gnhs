@@ -34,14 +34,32 @@ class _ClassAlumniListScreenState extends State<ClassAlumniListScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final querySnapshot = await FirebaseFirestore.instance
+      // class_number 필드로 검색 (신규 데이터)
+      final querySnapshot1 = await FirebaseFirestore.instance
+          .collection('alumni')
+          .where('class_number', isEqualTo: widget.graduationYear)
+          .get();
+      
+      // graduation_year 필드로도 검색 (구버전 데이터 호환)
+      final querySnapshot2 = await FirebaseFirestore.instance
           .collection('alumni')
           .where('graduation_year', isEqualTo: widget.graduationYear)
           .get();
       
-      final alumni = querySnapshot.docs
-          .map((doc) => Alumni.fromFirestore(doc.data(), doc.id))
-          .toList();
+      // 두 결과 합치기 (중복 제거)
+      final alumniMap = <String, Alumni>{};
+      
+      for (var doc in querySnapshot1.docs) {
+        alumniMap[doc.id] = Alumni.fromFirestore(doc.data(), doc.id);
+      }
+      
+      for (var doc in querySnapshot2.docs) {
+        if (!alumniMap.containsKey(doc.id)) {
+          alumniMap[doc.id] = Alumni.fromFirestore(doc.data(), doc.id);
+        }
+      }
+      
+      final alumni = alumniMap.values.toList();
       
       // 이름순으로 정렬
       alumni.sort((a, b) => a.name.compareTo(b.name));
@@ -82,7 +100,17 @@ class _ClassAlumniListScreenState extends State<ClassAlumniListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.classText} 동문'),
+        title: InkWell(
+          onTap: () {
+            // 홈으로 돌아가기
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          child: const Text(
+            '강릉고 동문 주소록',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: Column(

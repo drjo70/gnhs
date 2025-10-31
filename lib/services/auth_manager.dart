@@ -1,6 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html show window;
+// 조건부 import: 웹에서만 dart:html 사용
+import 'web_storage_stub.dart'
+    if (dart.library.html) 'web_storage_web.dart' as web_storage;
 
 class AuthManager {
   static const String _keyLoggedInPhone = 'logged_in_phone';
@@ -38,7 +40,7 @@ class AuthManager {
       if (kIsWeb) {
         // 웹 환경: localStorage 사용
         print('🌐 [AuthManager] 웹 환경 - localStorage 사용');
-        _currentUserPhone = html.window.localStorage[_keyLoggedInPhone];
+        _currentUserPhone = web_storage.WebStorage.getItem(_keyLoggedInPhone);
       } else {
         // 모바일 환경: SharedPreferences 사용
         print('📱 [AuthManager] 모바일 환경 - SharedPreferences 사용');
@@ -64,7 +66,7 @@ class AuthManager {
     if (kIsWeb) {
       // 웹 환경: localStorage 사용
       print('🌐 [AuthManager] 웹 - localStorage에 저장');
-      html.window.localStorage[_keyLoggedInPhone] = normalizedPhone;
+      web_storage.WebStorage.setItem(_keyLoggedInPhone, normalizedPhone);
     } else {
       // 모바일 환경: SharedPreferences 사용
       print('📱 [AuthManager] 모바일 - SharedPreferences에 저장');
@@ -83,7 +85,7 @@ class AuthManager {
   Future<void> logout() async {
     if (kIsWeb) {
       // 웹 환경: localStorage 사용
-      html.window.localStorage.remove(_keyLoggedInPhone);
+      web_storage.WebStorage.removeItem(_keyLoggedInPhone);
     } else {
       // 모바일 환경: SharedPreferences 사용
       final prefs = await SharedPreferences.getInstance();

@@ -11,7 +11,8 @@ class AlumniService {
       final years = <int>{};
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final year = data['graduation_year'] as int?;
+        // class_number (신규) 또는 graduation_year (이전) 필드 지원
+        final year = (data['class_number'] ?? data['graduation_year']) as int?;
         // 유효한 회차만 포함 (0, null 등 제외)
         if (year != null && year > 0) {
           years.add(year);
@@ -34,7 +35,8 @@ class AlumniService {
       final countMap = <int, int>{};
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final year = data['graduation_year'] as int?;
+        // class_number (신규) 또는 graduation_year (이전) 필드 지원
+        final year = (data['class_number'] ?? data['graduation_year']) as int?;
         // 유효한 회차만 포함 (0, null 등 제외)
         if (year != null && year > 0) {
           countMap[year] = (countMap[year] ?? 0) + 1;
@@ -55,7 +57,8 @@ class AlumniService {
       int validCount = 0;
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final year = data['graduation_year'] as int?;
+        // class_number (신규) 또는 graduation_year (이전) 필드 지원
+        final year = (data['class_number'] ?? data['graduation_year']) as int?;
         // 유효한 회차만 카운트 (0, null 등 제외)
         if (year != null && year > 0) {
           validCount++;
@@ -71,9 +74,10 @@ class AlumniService {
   /// 특정 기수의 동문 수 가져오기
   Future<int> getAlumniCountForYear(int year) async {
     try {
+      // class_number 필드로 쿼리 (신규 데이터 구조)
       final snapshot = await _firestore
           .collection('alumni')
-          .where('graduation_year', isEqualTo: year)
+          .where('class_number', isEqualTo: year)
           .count()
           .get();
       return snapshot.count ?? 0;

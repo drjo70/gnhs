@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> {
               
               // 앱 이름
               const Text(
-                '강릉고등학교',
+                '강릉고 동문',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -107,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 8),
               
               const Text(
-                '총동문회',
+                '주소록',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w500,

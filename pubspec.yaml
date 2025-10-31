@@ -1,5 +1,5 @@
 name: gnhs_alumni
-description: "강릉고등학교 총동문회 주소록 앱"
+description: "강릉고 동문 주소록 앱"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

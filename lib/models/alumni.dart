@@ -1,9 +1,9 @@
 class Alumni {
+  // documentId 필드 제거 - phone이 곧 Document ID
   final String phone;
   final String name;
   final int graduationYear;
   final String email;
-  final String email2;
   final String company;
   final String jobTitle;
   final String department;
@@ -20,7 +20,6 @@ class Alumni {
     required this.name,
     required this.graduationYear,
     required this.email,
-    required this.email2,
     required this.company,
     required this.jobTitle,
     required this.department,
@@ -35,18 +34,19 @@ class Alumni {
 
   factory Alumni.fromFirestore(Map<String, dynamic> data, String documentId) {
     return Alumni(
-      // 문서 ID를 phone으로 사용 (문서 ID는 항상 하이픈 없는 전화번호)
-      phone: documentId,
+      // phone 필드 사용, 없으면 documentId 사용 (Document ID = 전화번호)
+      phone: data['phone'] ?? documentId,
       name: data['name'] ?? '',
-      graduationYear: data['graduation_year'] ?? 0,
+      // class_number (새 필드) 또는 graduation_year (이전 필드) 지원
+      graduationYear: data['class_number'] ?? data['graduation_year'] ?? 0,
       email: data['email'] ?? '',
-      email2: data['email2'] ?? '',
-      company: data['company'] ?? '',
-      jobTitle: data['job_title'] ?? '',
-      department: data['department'] ?? '',
+      // organization (새 필드) 또는 company (이전 필드) 지원
+      company: data['organization'] ?? data['company'] ?? '',
+      jobTitle: data['organization_title'] ?? data['job_title'] ?? '',
+      department: data['organization_dept'] ?? data['department'] ?? '',
       address: data['address'] ?? '',
       address2: data['address2'] ?? '',
-      birthDate: data['birth_date'] ?? '',
+      birthDate: data['birthday'] ?? data['birth_date'] ?? '',
       notes: data['notes'] ?? '',
       phone2: data['phone2'] ?? '',
       profilePhotoUrl: data['profile_photo_url'] ?? '',
@@ -60,7 +60,6 @@ class Alumni {
       'name': name,
       'graduation_year': graduationYear,
       'email': email,
-      'email2': email2,
       'company': company,
       'job_title': jobTitle,
       'department': department,
